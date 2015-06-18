@@ -7,15 +7,22 @@
 #include<openssl/dh.h>
 #include"enc_lib.h"
 
-#define CL_MSG_SIZE 1000
+#define CL_MSG_SIZE 100
 #define PORT_NUMBER 8888
 #define KEY_LENGHT 512
+
 
 int main(int argc , char *argv[]){
 	int socket_desc , client_sock , c , read_size;
 	struct sockaddr_in server , client;
 	unsigned char *client_message=calloc(CL_MSG_SIZE,sizeof(char));
 	int socket_dest=0;
+
+	int key_len=EVP_CIPHER_key_length(EVP_DES_ECB);
+	int block_size=EVP_CIPHER_block_size(EVP_DES_ECB);
+
+	unsigned char *key=calloc(key_len, sizeof(unsigned char));
+	set_key_zero(key,key_len);
 
 	//DA qua a..
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
@@ -38,7 +45,7 @@ int main(int argc , char *argv[]){
         	return 1;
     	}
     	puts("bind done");
-     //...qua dovrebbe diventare una funzione, però è un bordello perchè ci stanno puntatori ovunque. Da fare a tempo perso
+     //...a qua dovrebbe diventare una funzione, però è un bordello perchè ci stanno puntatori ovunque. Da fare a tempo perso
     //Listen
 //	socket_dest=create_socket_and_listen();
 	if(socket_dest<0) return -1;
@@ -58,27 +65,22 @@ int main(int argc , char *argv[]){
      
     //Receive a message from client
 	while( (read_size = recv(client_sock , client_message , CL_MSG_SIZE, 0)) > 0 ){
-	int key_len=EVP_CIPHER_key_length(EVP_des_ecb());
-	int block_size=EVP_CIPHER_block_size(EVP_des_ecb());
-	unsigned char *key=calloc(key_len, sizeof(unsigned char));
-	set_key_zero(key,key_len);
 
 	//I'm going to decrypt client message
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
-	printf("size of cipher text:%d\n",(int)sizeof(client_message));
-	unsigned char* plain_text=dec_msg(client_message,ctx, key, block_size,sizeof(client_message));
-	del_padding(plain_text);
+	int cipher_text_len=(int)strlen((const char*)client_message);
+	unsigned char* plain_text=dec_msg(client_message,ctx, key, block_size, cipher_text_len);
+	//del_padding(plain_text);
 	printf("I've received %s from the client\n",plain_text);
-	prn_msg((const char*)plain_text, 2);
-	memset(client_message,0,sizeof(CL_MSG_SIZE));
+	memset(client_message,0,sizeof(CL_MSG_SIZE));//I clean the old received message
     }
      
     if(read_size == 0){
-        puts("Client disconnected");
+        puts("Client disconnected\n");
         fflush(stdout);
     }
-    else if(read_size == -1)       perror("recv failed");
-    
+    else if(read_size == -1)       perror("recv failed\n");
+    else if(read_size>CL_MSG_SIZE) perror("Message too long\n");
      
     return 0;
 }

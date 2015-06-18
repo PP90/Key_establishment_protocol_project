@@ -15,18 +15,21 @@
 int send_msg_clr(char* message, int sock){
 	printf("Enter message:");
 	fgets(message,DIM_CHAR_MSG,stdin);	
-        //Send some data in clear
+	//send
         return send(sock , message ,DIM_CHAR_MSG, 0);
 }
 
+
+//Send the encrypted message
 int send_enc_msg(char* msg, int sock){
+	//I choose the encryption type, key length and randomize it. 
+	int key_len=EVP_CIPHER_key_length(EVP_DES_ECB);
+	int block_size=EVP_CIPHER_block_size(EVP_DES_ECB);
+	unsigned char *key=calloc(key_len, sizeof(unsigned char));
+
 	printf("Enter message:");
 	fgets(msg,DIM_CHAR_MSG,stdin);
-
-	//I choose the encryption type, key length and randomize it. 
-	int key_len=EVP_CIPHER_key_length(EVP_des_ecb());
-	int block_size=EVP_CIPHER_block_size(EVP_des_ecb());
-	unsigned char *key=calloc(key_len, sizeof(unsigned char));
+	
 	//RAND_bytes(key,key_len);//Actually the key is random generated 
 	set_key_zero(key,key_len);//I assume that this key is know by the other side, i.e. the server
 		
@@ -36,7 +39,6 @@ int send_enc_msg(char* msg, int sock){
 	int cipher_size=0;
 	unsigned char* cipher_text=enc_msg(msg, block_size, ctx, key, key_len, &cipher_size);//Message encrypted to send to the server
 
-        //Send some data in clear
 	int res=send(sock , cipher_text ,cipher_size, 0);
 	free(cipher_text);
 	free(key);
@@ -64,7 +66,6 @@ int create_socket_and_connect(){
 
  	connection=connect(sock , (struct sockaddr*)&server , sizeof(server));
 	    //Connect to remote server
-	printf("connection:%d\n",connection);
 	if(connection<0){
 		printf("Error connection\n");	
 		return -1;
