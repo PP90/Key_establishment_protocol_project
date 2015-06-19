@@ -7,21 +7,20 @@
 #include<openssl/dh.h>
 #include"enc_lib.h"
 
-#define CL_MSG_SIZE 100
 #define PORT_NUMBER 8888
-#define KEY_LENGHT 512
-
 
 int main(int argc , char *argv[]){
 	int socket_desc , client_sock , c , read_size;
 	struct sockaddr_in server , client;
-	unsigned char *client_message=calloc(CL_MSG_SIZE,sizeof(char));
+	unsigned char *client_message=NULL;
 	int socket_dest=0;
 
-	int key_len=EVP_CIPHER_key_length(EVP_DES_ECB);
-	int block_size=EVP_CIPHER_block_size(EVP_DES_ECB);
+	int cipher_size=0;
+	int key_len=EVP_CIPHER_key_length(DES_ECB);
+	int block_size=EVP_CIPHER_block_size(DES_ECB);
 
 	unsigned char *key=calloc(key_len, sizeof(unsigned char));
+	unsigned char* plain_text=NULL;
 	set_key_zero(key,key_len);
 
 	//DA qua a..
@@ -44,7 +43,7 @@ int main(int argc , char *argv[]){
         	perror("bind failed. Error");
         	return 1;
     	}
-    	puts("bind done");
+    	puts("Bind done");
      //...a qua dovrebbe diventare una funzione, però è un bordello perchè ci stanno puntatori ovunque. Da fare a tempo perso
     //Listen
 //	socket_dest=create_socket_and_listen();
@@ -64,15 +63,17 @@ int main(int argc , char *argv[]){
     puts("Connection accepted");
      
     //Receive a message from client
-	while( (read_size = recv(client_sock , client_message , CL_MSG_SIZE, 0)) > 0 ){
-
-	//I'm going to decrypt client message
-	EVP_CIPHER_CTX* ctx=enc_initialization(key);
-	int cipher_text_len=(int)strlen((const char*)client_message);
-	unsigned char* plain_text=dec_msg(client_message,ctx, key, block_size, cipher_text_len);
-	//del_padding(plain_text);
-	printf("I've received %s from the client\n",plain_text);
-	memset(client_message,0,sizeof(CL_MSG_SIZE));//I clean the old received message
+	while( (read_size = recv(client_sock , &cipher_size , sizeof(int), 0)) > 0 ){//TO DO. DECRYPT THE ENCYRIPT SIZE MESSAGE
+		//dec_msg(&cipher_size, block_size,8, key);
+		client_message=realloc(client_message, cipher_size);//Realloc the new space for the new message incoming
+		if(recv(client_sock, client_message, cipher_size, 0)>0){
+			plain_text=dec_msg(client_message, block_size, cipher_size, key);//I'm going to decrypt client message
+			printf("I've received %s from the client\n",plain_text);
+			memset(client_message,0,cipher_size);//I clean the old received message
+		}else{
+			printf("Error receiving encrypting message\n");
+			return -1;			
+			}
     }
      
     if(read_size == 0){
@@ -80,7 +81,6 @@ int main(int argc , char *argv[]){
         fflush(stdout);
     }
     else if(read_size == -1)       perror("recv failed\n");
-    else if(read_size>CL_MSG_SIZE) perror("Message too long\n");
      
     return 0;
 }
