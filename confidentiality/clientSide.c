@@ -17,18 +17,23 @@ int send_enc_msg(int sock){
 	
 	unsigned char* cipher_text=NULL;
 	unsigned char* msg=calloc(DIM_CHAR_MSG,sizeof(unsigned char));
-	//unsigned char* cipher_len_to_encrypt=calloc(3,sizeof(unsigned char));
-	//unsigned char* cipher_len_encrypted=calloc(8,sizeof(unsigned char));
+	unsigned char* cipher_len_to_encrypt=calloc(3,sizeof(unsigned char));
+	unsigned char* cipher_len_encrypted=calloc(8,sizeof(unsigned char));
 	int cipher_size=0;
+	int size_of_encrypted_size=0;
 	int res=0;
 	
 	printf("Enter message:");
 	fgets((char*)msg,DIM_CHAR_MSG,stdin);
 	cipher_text=enc_msg_with_DES_EBC((unsigned char*)msg, &cipher_size);	
 	
-	//sprintf((char*)cipher_len_to_encrypt,"%d", cipher_size);
-	//cipher_len_encrypted=enc_msg_with_DES_EBC((unsigned char*)cipher_len_to_encrypt);
-	if(send(sock, &cipher_size, sizeof(int), 0) >0) res=send(sock , cipher_text ,cipher_size, 0);//If the send of cipher size goes ok, then send the cipher text
+	sprintf((char*)cipher_len_to_encrypt,"%d", cipher_size);
+		
+	cipher_len_encrypted=enc_msg_with_DES_EBC((unsigned char*)cipher_len_to_encrypt, &size_of_encrypted_size);
+	prn_enc_msg(cipher_len_encrypted,8);
+	if(send(sock,cipher_len_encrypted, size_of_encrypted_size, 0) >0){
+		res=send(sock , cipher_text ,cipher_size, 0);//If the send of cipher size goes ok, then send the cipher text
+		}
 	memset(msg,0,cipher_size);
 	free(msg);
 	memset(cipher_text,0,cipher_size);

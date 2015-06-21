@@ -20,7 +20,8 @@ int main(int argc , char *argv[]){
 	int block_size=EVP_CIPHER_block_size(DES_ECB);
 
 	unsigned char *key=calloc(key_len, sizeof(unsigned char));
-	//unsigned char* cipher_size_encrypted=calloc(1000,sizeof(unsigned char));
+	unsigned char* cipher_size_encrypted=calloc(8,sizeof(unsigned char));
+	unsigned char* cipher_size_pt=calloc(8,sizeof(unsigned char));
 	unsigned char* plain_text=NULL;
 	set_key_zero(key,key_len);
 
@@ -64,33 +65,34 @@ int main(int argc , char *argv[]){
     puts("Connection accepted");
      
     //Receive a message from client
-	while( (read_size = recv(client_sock, &cipher_size, sizeof(int), 0)) > 0){
-		/*printf("I'm the server\n");		
-		prn_enc_msg(cipher_size_encrypted);
-		plain_text=dec_msg(cipher_size_encrypted, block_size,block_size, key);//I'm going to decrypt client message
-		//Then convert the decrypted message into a int
-		prn_msg(plain_text,3);*/
-		printf("I'm going to realloc %d bytes\n",cipher_size);
+	while(recv(client_sock, cipher_size_encrypted,8, 0)>0){
+		cipher_size_pt=dec_msg(cipher_size_encrypted, block_size, 8, key);
+		cipher_size=atoi((const char*)cipher_size_pt);
 		client_message=realloc(client_message, cipher_size);//Realloc the new space for the new message incoming
-		if(recv(client_sock, client_message, cipher_size, 0)>0){
-			plain_text=dec_msg(client_message, block_size, cipher_size, key);//I'm going to decrypt client message
-			printf("I've received %s from the client\n",plain_text);
-			memset(client_message,0,cipher_size);//I clean the old received cipher_text
-			memset(plain_text,0,(int)strlen((const char*)plain_text));//I clean the cipher text
-		}else{
-			printf("Error receiving encrypting message\n");
-			return -1;			
+		
+	if((read_size =recv(client_sock, client_message, cipher_size, 0))>0){
+		plain_text=dec_msg(client_message, block_size, cipher_size, key);//I'm going to decrypt client message
+		printf("I've received %s from the client\n",plain_text);
+		memset(client_message,0,cipher_size);//I clean the old received cipher_text
+		memset(plain_text,0,(int)strlen((const char*)plain_text));//I clean the old plain_text
+	}else{
+		printf("Error receiving encrypted message\n");
+		return -1;			
+		}
+ 
+	if(read_size==0 || read_size==1){		
+		if(read_size == -1)perror("recv failed\n");
+		
+		if(read_size == 0){
+			puts("Client disconnected\n");
+			fflush(stdout);
 			}
-    }
-     
-    if(read_size == 0){
-        puts("Client disconnected\n");
-	free(client_message);
-        fflush(stdout);
-    }
-    else if(read_size == -1){    
-	free(client_message);
-   	perror("recv failed\n");
-     }
+		}
+			
+	}
+		free(cipher_size_pt);
+		free(plain_text);
+		free(client_message);
+		free(key);
     return 0;
 }
