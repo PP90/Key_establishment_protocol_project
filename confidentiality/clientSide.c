@@ -11,36 +11,28 @@
 #define DIM_CHAR_MSG 100
 
 
+
 //Encrypt the message and then send it
-int send_enc_msg(char* msg, int sock){
-	//I choose the encryption type, key length and randomize it. 
-	int res=-1;
-	int cipher_size=0;
-	int pippo=0;
-	int key_len=EVP_CIPHER_key_length(DES_ECB);
-	unsigned char *key=calloc(key_len, sizeof(unsigned char));
-	set_key_zero(key,key_len);//I assume that this key is know by the other side, i.e. the server
-	int block_size=EVP_CIPHER_block_size(DES_ECB);
-	unsigned char* cipher_text=NULL;
-	unsigned char * tmp=calloc(8, sizeof(unsigned char*));
-	unsigned char* enc_cipher_size=NULL;
-
-	printf("Enter message:");
-	fgets(msg,DIM_CHAR_MSG,stdin);
+int send_enc_msg(int sock){
 	
-	//RAND_bytes(key,key_len);//Actually the key is random generated
-	//Message encrypted to send to the server. After encryption I know how much big is the cipher text
-	cipher_text=enc_msg(msg, block_size, key, key_len, &cipher_size);
-	sprintf((char*)tmp, "%d", cipher_size);
-
-	enc_cipher_size=enc_msg(tmp, block_size, key, key_len, &pippo);//Encrypt the size of cipher text in order to far sapere al server quanto allocare
-
-	printf("Enc_message\n");	
-	prn_enc_msg(enc_cipher_size, pippo);	
-	//I have to encrypt the size of encypted message. To fix
+	unsigned char* cipher_text=NULL;
+	unsigned char* msg=calloc(DIM_CHAR_MSG,sizeof(unsigned char));
+	//unsigned char* cipher_len_to_encrypt=calloc(3,sizeof(unsigned char));
+	//unsigned char* cipher_len_encrypted=calloc(8,sizeof(unsigned char));
+	int cipher_size=0;
+	int res=0;
+	
+	printf("Enter message:");
+	fgets((char*)msg,DIM_CHAR_MSG,stdin);
+	cipher_text=enc_msg_with_DES_EBC((unsigned char*)msg, &cipher_size);	
+	
+	//sprintf((char*)cipher_len_to_encrypt,"%d", cipher_size);
+	//cipher_len_encrypted=enc_msg_with_DES_EBC((unsigned char*)cipher_len_to_encrypt);
 	if(send(sock, &cipher_size, sizeof(int), 0) >0) res=send(sock , cipher_text ,cipher_size, 0);//If the send of cipher size goes ok, then send the cipher text
+	memset(msg,0,cipher_size);
+	free(msg);
+	memset(cipher_text,0,cipher_size);
 	free(cipher_text);
-	free(key);
         return res;
 }
 
@@ -77,21 +69,19 @@ int create_socket_and_connect(){
 
 int main(int argc , char *argv[])
 {
-	char* message=calloc(DIM_CHAR_MSG,sizeof(char));
 	int sock=create_socket_and_connect();
-
+	
     if(sock<0)	return -1;
 
     while(1)//keep communicating with server
     {
 
-	if(send_enc_msg(message, sock)<0){
+	if(send_enc_msg(sock)<0){
 		puts("Send failed");
 		return -1;
 		}
     }
      	//Free stuff
     	close(sock);
-	free(message);
     return 0;
 }

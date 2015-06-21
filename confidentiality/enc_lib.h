@@ -14,7 +14,6 @@
 EVP_CIPHER_CTX* enc_initialization(unsigned char* key){
 	EVP_CIPHER_CTX* ctx=calloc(1,sizeof(EVP_CIPHER_CTX));
 	EVP_CIPHER_CTX_init(ctx);
-	EVP_EncryptInit(ctx,DES_ECB, key, NULL);
 	return ctx;
 }
 
@@ -41,10 +40,10 @@ void prn_key(unsigned char *key, int len_key){
 void prn_msg(unsigned char* msg, int format){//If format is 1 print the string, otherwise print the hexadecimal format
 	int i;
 
-	printf("Msg\n");
-	if(format==1)	printf("%s\n",msg);
+	printf("Msg:\t");
+	if((format==1) || (format==3))	printf("%s\n",msg);
 	
-	if(format==2){
+	if((format==2) ||  (format==3)){ 
 		for(i=0; i<strlen((const char*) msg); i++){
 				printf("%02X:",msg[i]);
 			}
@@ -54,13 +53,11 @@ void prn_msg(unsigned char* msg, int format){//If format is 1 print the string, 
 
 
 //It prints the encrypted message. //Maybe is not useful anymore because there is the prn_msg
-void prn_enc_msg(unsigned char* chipher_txt, int len_cipher){
+void prn_enc_msg(unsigned char* cipher_txt, int cipher_size){
 	int i;
-
 	printf("Chipher text\n");
-	for(i=0; i<len_cipher; i++){
-			printf("%02X:",chipher_txt[i]);
-		}
+	for(i=0; i<cipher_size; i++)	printf("%02X:",cipher_txt[i]);
+		
 	printf("\n");
 	}
 
@@ -69,21 +66,17 @@ void prn_enc_msg(unsigned char* chipher_txt, int len_cipher){
 unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_len, int* cipher_len){
 	int outlen=0;
 	int outlen_tot=0;
-	size_t msg_len=strlen(msg);
+	size_t msg_len=strlen(msg)+1;
 	unsigned char *cipher_text=calloc(msg_len+block_size, sizeof(unsigned char));
-
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
+	
+	EVP_EncryptInit(ctx,DES_ECB, key, NULL);
 	EVP_EncryptUpdate(ctx,cipher_text, &outlen, (unsigned char*)msg, msg_len);
 	outlen_tot+=outlen;
 	
 	EVP_EncryptFinal(ctx, cipher_text+outlen_tot, &outlen);//Adding padding
 	outlen_tot+=outlen;
 	*cipher_len=outlen_tot;
-
-	//It prints: plaintext, key and cipher text
-	prn_msg(msg, 2);
-	prn_key(key,key_len);	
-	prn_enc_msg(cipher_text,*cipher_len);
 	EVP_CIPHER_CTX_cleanup(ctx);
 	return cipher_text;
 }
@@ -94,19 +87,31 @@ unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsig
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
 	int outlen=0;
 	int outlen_tot=0;
+	int res=0;
 	unsigned char* plain_text=calloc(cipher_size,sizeof(unsigned char));
-
 	EVP_DecryptInit(ctx,DES_ECB, key, NULL);
+	EVP_DecryptUpdate(ctx, plain_text, &outlen, cipher_text, cipher_size);
+	outlen_tot+=outlen;	
+	res=EVP_DecryptFinal(ctx,plain_text+outlen_tot, &outlen);
 
-	EVP_DecryptUpdate(ctx,plain_text+block_size, &outlen, cipher_text,cipher_size);
-	outlen_tot+=outlen;
-	int res=EVP_DecryptFinal_ex(ctx,plain_text+outlen_tot, &outlen);
-	outlen_tot+=outlen;
-	plain_text=realloc(plain_text,outlen_tot);
 	if(res==0){
 		printf("Error in decrypting\n");
 	return NULL;
 	}
+	outlen_tot+=outlen;
 	EVP_CIPHER_CTX_cleanup(ctx);
 	return plain_text;
 	}
+
+//I'm going to create the encryption context and then encrypt with DES EBC
+unsigned char* enc_msg_with_DES_EBC(void* msg, int* cipher_size){
+	int key_len=EVP_CIPHER_key_length(DES_ECB);
+	int block_size=EVP_CIPHER_block_size(DES_ECB);
+	unsigned char* cipher_text=NULL;
+	unsigned char *key=calloc(key_len, sizeof(unsigned char));
+	set_key_zero(key,key_len);//I assume that this key is know by the other side, i.e. the server
+	
+	cipher_text=enc_msg(msg, block_size, key, key_len, cipher_size);
+	free(key);
+	return cipher_text;
+}
