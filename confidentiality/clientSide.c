@@ -1,92 +1,79 @@
-#include<stdio.h> 
-#include<string.h>    
-#include<sys/socket.h>    
-#include<arpa/inet.h> 
-#include<openssl/bn.h>
-#include<openssl/dh.h>
-#include<unistd.h>
 #include"enc_lib.h"
+#include"net_lib.h"
+#include"util_lib.h"
 
-#define PORT_NUMBER 8888
+#define DEFAULT_ID_CLIENT "9999"
+#define DEFAULT_ID_SERVER "1234"
 #define DIM_CHAR_MSG 100
-
-
-
-//Encrypt the message and then send it
-int send_enc_msg(int sock){
-	
-	unsigned char* cipher_text=NULL;
-	unsigned char* msg=calloc(DIM_CHAR_MSG,sizeof(unsigned char));
-	unsigned char* cipher_len_to_encrypt=calloc(3,sizeof(unsigned char));
-	unsigned char* cipher_len_encrypted=calloc(8,sizeof(unsigned char));
-	int cipher_size=0;
-	int size_of_encrypted_size=0;
-	int res=0;
-	
-	printf("Enter message:");
-	fgets((char*)msg,DIM_CHAR_MSG,stdin);
-	cipher_text=enc_msg_with_DES_EBC((unsigned char*)msg, &cipher_size);	
-	
-	sprintf((char*)cipher_len_to_encrypt,"%d", cipher_size);
-		
-	cipher_len_encrypted=enc_msg_with_DES_EBC((unsigned char*)cipher_len_to_encrypt, &size_of_encrypted_size);
-	prn_enc_msg(cipher_len_encrypted,8);
-	if(send(sock,cipher_len_encrypted, size_of_encrypted_size, 0) >0){
-		res=send(sock , cipher_text ,cipher_size, 0);//If the send of cipher size goes ok, then send the cipher text
-		}
-	memset(msg,0,cipher_size);
-	free(msg);
-	memset(cipher_text,0,cipher_size);
-	free(cipher_text);
-        return res;
-}
-
-//Creation of a socket and connection to a local host server
-int create_socket_and_connect(){
-
-	struct sockaddr_in server;
-	const char* LOCAL_HOST="127.0.0.1";
-	int sock = socket(AF_INET , SOCK_STREAM , 0);
-	int connection;
-	if (sock == -1){     
-		printf("Could not create socket");
-		return -1;    
-		}
-
-	puts("Socket created correctly");
-     
-	server.sin_addr.s_addr = inet_addr(LOCAL_HOST);
-	server.sin_family = AF_INET;
-	server.sin_port = htons( PORT_NUMBER );
-
- 	connection=connect(sock , (struct sockaddr*)&server , sizeof(server));
-	    //Connect to remote server
-	if(connection<0){
-		printf("Error connection\n");	
-		return -1;
-		}
-	else{ 
-		printf("Connection done\n");
-		return sock;	
-		}
-}
-
 
 int main(int argc , char *argv[])
 {
+	int tot_size_1st_msg=2*ID_SIZE+NONCE_SIZE+1;
+	unsigned char* my_id=calloc(ID_SIZE,sizeof(unsigned char));
+	unsigned char* id_server=calloc(ID_SIZE,sizeof(unsigned char));
+	unsigned char* nonce_other_side=calloc(NONCE_SIZE,sizeof(unsigned char));
+	//unsigned char *cipher_text=NULL;
+	//int cipher_size=0;
+
+	switch (argc){
+	case 1:
+		my_id=(unsigned char*)DEFAULT_ID_CLIENT;//Default
+		id_server=(unsigned char*)DEFAULT_ID_SERVER;//Default
+		break;
+
+	case 2:
+		if((int)strlen((const char*)argv[1])!=ID_SIZE){
+				printf("The id length must be %d\n",ID_SIZE);
+				return -1;
+				}
+		my_id=(unsigned char*)argv[1];
+		id_server=(unsigned char*)DEFAULT_ID_SERVER;
+		break;
+
+	case 3://To do: make this control: my_id and id_server must not be equal
+		if(((int)strlen((const char*)argv[1])!=ID_SIZE) & ((int)strlen((const char*)argv[2])!=ID_SIZE)){
+			printf("The id length must be %d\n",ID_SIZE);
+			return -1;
+			}
+		my_id=(unsigned char*)argv[1];
+		id_server=(unsigned char*)argv[2];
+		break;
+	}
+
+	unsigned char* my_nonce=generate_nonce();
+	unsigned char *first_msg=generate_first_msg(my_id, id_server,my_nonce);
+	int secret_len=EVP_CIPHER_key_length(AES_256_CBC);
+	printf("Secret_len in byte=%d\n",secret_len);
+//The secret has to be read from the file not hard code way
+	unsigned char *secret=calloc(secret_len, sizeof(unsigned char));
+	set_secret_zero(secret,secret_len);//I assume that this secret is know by the other side, i.e. the server
+	//int block_size=EVP_CIPHER_block_size(AES_256_CBC);
+
 	int sock=create_socket_and_connect();
-	
-    if(sock<0)	return -1;
-
-    while(1)//keep communicating with server
-    {
-
-	if(send_enc_msg(sock)<0){
-		puts("Send failed");
-		return -1;
+	if(sock<0)	return -1;
+		if(send(sock, first_msg,tot_size_1st_msg,MEMSET_YES)<0){
+			printf("Error sending 1st message\n");
+			return -1;
 		}
-    }
-     	//Free stuff
-    	close(sock);
-    return 0;
+
+		if(recv(sock, first_msg,tot_size_1st_msg,0)<0){
+			printf("Error receiving message from the server\n");
+			return -1;
+		}	
+		nonce_other_side=get_nonce_other_side(first_msg);
+		printf("My nonce\t");
+		prn_msg(my_nonce,2);
+		printf("Nonce server\t");
+		prn_msg(nonce_other_side,2);
+		close(sock);
+	//Free stuff
+	
+	free(first_msg);
+/*At least one of these free gives problems. Find which and why
+	free(id_server);
+	free(nonce_other_side);
+	free(my_nonce);
+	free(secret);
+	*/
+	return 0;
 }
