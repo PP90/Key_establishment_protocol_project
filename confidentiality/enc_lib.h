@@ -12,21 +12,23 @@
 #ifndef ENC_LIB 
 #define ENC_LIB 1212
 
-#define NONCE_SIZE 2
-#define KEY_SESSION_SIZE 32
+#define NONCE_SIZE 4
 
-#define DES_ECB EVP_des_ecb()
-#define AES_256_CBC EVP_aes_256_cbc()
+#define DES_ECB EVP_des_ecb() //Not advisable to use. Deprecated
+#define AES_256_CBC EVP_aes_256_cbc() //Symmetric cipher mode used in the secret
+#define AES_128_CBC EVP_aes_128_cbc() //Symmetric cipher mode used in the session
 
-//Initialization of context encryption. Ok
+//Initialization of context encryption.
 EVP_CIPHER_CTX* enc_initialization(unsigned char* key){
 	EVP_CIPHER_CTX* ctx=calloc(1,sizeof(EVP_CIPHER_CTX));
 	EVP_CIPHER_CTX_init(ctx);
 	return ctx;
 }
 
+
 //Function to decide arbitrary the shared long term seret. My secret is all 0.
-void set_secret_zero(unsigned char *secret, int len_secret){//Actually the key must be in a crypted file and not in the source code.
+//Actually the key must be in a crypted file and not in the source code.
+void set_secret_zero(unsigned char *secret, int len_secret){
 	int i;
 	for(i=0; i<len_secret; i++){
 		secret[i]='0';		
@@ -34,28 +36,42 @@ void set_secret_zero(unsigned char *secret, int len_secret){//Actually the key m
 	}
 
 
-//This function generates the session key between A and B
+//This function generates the session key between A and B. Its length is session_key_size
 unsigned char* generate_session_key(int session_key_size){
-	unsigned char* session_key=calloc(session_key_size, sizeof(unsigned char));
+	unsigned char* session_key=(unsigned char*)malloc(session_key_size*sizeof(unsigned char));
 	RAND_seed(session_key,session_key_size);
 	RAND_bytes(session_key,session_key_size);
-return session_key;
+	return session_key;
+}
+
+//
+void enc_inizialization(int *secret_size, int *key_size){
+	*secret_size=EVP_CIPHER_key_length(AES_256_CBC);
+	*key_size=EVP_CIPHER_key_length(AES_128_CBC);
+	printf("secret_size:%d\n",*secret_size);
+	printf("key_size:%d\n",*key_size);
 }
 
 //Encription function. 
 //It encrypts input generic message msg, with the key knowing its length key_len and block_size.
-unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_len, int* cipher_len, EVP_CIPHER *enc_type){
+unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_len, int* cipher_len, int mode){//Put another parameter in order to specify the encryption type
 	int outlen=0;
 	int outlen_tot=0;
 	size_t msg_len=strlen(msg)+1;
 	unsigned char *cipher_text=calloc(msg_len+block_size, sizeof(unsigned char));
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
+	
+	if(mode==128) EVP_EncryptInit(ctx,AES_128_CBC, key, NULL);
+	else if(mode==256) EVP_EncryptInit(ctx,AES_256_CBC, key, NULL);
+	else {
+		printf("Error: choose 128 or 256 in encryption mode\n");
+		return NULL;
+	}
 
-	EVP_EncryptInit(ctx,enc_type, key, NULL);//If I want change the encryption type, I'll change the 2nd parameter
 	EVP_EncryptUpdate(ctx,cipher_text, &outlen, (unsigned char*)msg, msg_len);
 	outlen_tot+=outlen;
-	
 	EVP_EncryptFinal(ctx, cipher_text+outlen_tot, &outlen);//Add the padding
+	printf("ok\n");
 	outlen_tot+=outlen;
 	*cipher_len=outlen_tot;
 	EVP_CIPHER_CTX_cleanup(ctx);
@@ -63,14 +79,20 @@ unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_l
 }
 
 
-//This function decrypts the cipher text
-unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsigned char* key, EVP_CIPHER *enc_type){
+//This function decrypts the cipher text with the key
+unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsigned char* key, int mode){
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
 	int outlen=0;
 	int outlen_tot=0;
 	int res=0;
 	unsigned char* plain_text=calloc(cipher_size,sizeof(unsigned char));
-	EVP_DecryptInit(ctx,enc_type, key, NULL);
+
+	if(mode==128) EVP_DecryptInit(ctx,EVP_aes_128_cbc(), key, NULL);
+	else if(mode==256) EVP_DecryptInit(ctx,EVP_aes_256_cbc(), key, NULL);
+	else {
+		printf("Error: choose 128 or 256 in decryption mode\n");
+		return NULL;
+	}
 	EVP_DecryptUpdate(ctx, plain_text, &outlen, cipher_text, cipher_size);
 	outlen_tot+=outlen;	
 	res=EVP_DecryptFinal(ctx,plain_text+outlen_tot, &outlen);
@@ -84,6 +106,7 @@ unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsig
 	return plain_text;
 	}
 
+//This function generates the nonce
 unsigned char* generate_nonce(){
 	unsigned char* nonce=calloc(NONCE_SIZE, sizeof(unsigned char));
 	RAND_seed(nonce,NONCE_SIZE);

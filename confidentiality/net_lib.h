@@ -75,32 +75,4 @@ int create_socket_and_connect(){
 	return connection;
 
 }
-
-/*
-//Receive and decrypt the message. To split in two simplest functions
-unsigned char* receive_msg(int client_sock, unsigned char* client_msg, int block_size, unsigned char* key, int cipher_size){
-	int read_size=-1;
-	unsigned char* plain_text=NULL;
-	if((read_size =recv(client_sock, client_msg, cipher_size, 0))>0){
-		plain_text=dec_msg(client_msg, block_size, cipher_size, key);//I'm going to decrypt client message
-		printf("I've received %s from the client\n",plain_text);
-		memset(client_msg,0,cipher_size);//I clean the old received cipher_text
-		memset(plain_text,0,(int)strlen((const char*)plain_text));//I clean the old plain_text
-	}else{
-		printf("Error receiving encrypted message\n");
-		return NULL;			
-		}
- 
-	if(read_size==0 || read_size==1){		
-		if(read_size == -1)perror("recv failed\n");
-		
-		if(read_size == 0){
-			puts("Client disconnected\n");
-			fflush(stdout);
-			}
-	}
-	free(plain_text);
-	return plain_text;
-}
-*/
 #endif

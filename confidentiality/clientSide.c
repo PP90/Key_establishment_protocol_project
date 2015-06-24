@@ -8,11 +8,18 @@
 
 int main(int argc , char *argv[])
 {
+	int secret_size;
+	int key_size;
+
+	enc_inizialization(&secret_size,&key_size);
 	int tot_size_1st_msg=2*ID_SIZE+NONCE_SIZE+1;
 	unsigned char* my_id=calloc(ID_SIZE,sizeof(unsigned char));
+	int m2_size=44;//GET SOMEHOW THIS NUMBER
+	unsigned char* m2=calloc(m2_size,sizeof(unsigned char));
 	unsigned char* id_server=calloc(ID_SIZE,sizeof(unsigned char));
 	unsigned char* nonce_other_side=calloc(NONCE_SIZE,sizeof(unsigned char));
-	//unsigned char *cipher_text=NULL;
+	//unsigned char* session_key=NULL;
+	unsigned char *cipher_text=NULL;
 	//int cipher_size=0;
 
 	switch (argc){
@@ -42,30 +49,41 @@ int main(int argc , char *argv[])
 
 	unsigned char* my_nonce=generate_nonce();
 	unsigned char *first_msg=generate_first_msg(my_id, id_server,my_nonce);
-	int secret_len=EVP_CIPHER_key_length(AES_256_CBC);
-	printf("Secret_len in byte=%d\n",secret_len);
 //The secret has to be read from the file not hard code way
-	unsigned char *secret=calloc(secret_len, sizeof(unsigned char));
-	set_secret_zero(secret,secret_len);//I assume that this secret is know by the other side, i.e. the server
-	//int block_size=EVP_CIPHER_block_size(AES_256_CBC);
+	unsigned char *secret=calloc(secret_size, sizeof(unsigned char));
+	set_secret_zero(secret,secret_size);//I assume that this secret is know by the other side, i.e. the server
+	int block_size=EVP_CIPHER_block_size(AES_256_CBC);
 
 	int sock=create_socket_and_connect();
 	if(sock<0)	return -1;
 		if(send(sock, first_msg,tot_size_1st_msg,MEMSET_YES)<0){
-			printf("Error sending 1st message\n");
+			printf("Error sending message M2\n");
 			return -1;
 		}
 
-		if(recv(sock, first_msg,tot_size_1st_msg,0)<0){
-			printf("Error receiving message from the server\n");
+		if(recv(sock, m2,m2_size,0)<0){
+			printf("Error receiving message M2 from the server\n");
 			return -1;
 		}	
-		nonce_other_side=get_nonce_other_side(first_msg);
-		printf("My nonce\t");
-		prn_msg(my_nonce,2);
-		printf("Nonce server\t");
-		prn_msg(nonce_other_side,2);
-		close(sock);
+	
+	if(its_for_me(m2, my_id)==0){
+	printf("M2 it's not for me\n");
+	return -1;
+	}
+
+	cipher_text=get_encrypted_session_key(m2,m2_size);
+	nonce_other_side=get_nonce_other_side(m2);
+
+	printf("My nonce\t");	prn_hex(my_nonce,NONCE_SIZE);
+	printf("Nonce server\t");prn_hex(nonce_other_side,NONCE_SIZE);
+	printf("M2:\t");prn_hex(m2, m2_size);
+	//Put some where a constant in which is specified this value and why
+	printf("Cipher_text from server\t");prn_hex(cipher_text,32);
+	
+	dec_msg(cipher_text, block_size, 32,secret,256);
+	printf("Secret\t");	prn_hex(secret,secret_size);
+	prn_hex(dec_msg(cipher_text, block_size, 32, secret,256),20);
+	close(sock);
 	//Free stuff
 	
 	free(first_msg);
