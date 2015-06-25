@@ -30,6 +30,8 @@ void sha256_hash(unsigned char * destination,char * source,int source_len) {
 
 #endif
 
+
+//da spostare
 /*
  
  ______________________ PRELEVA LA CHIAVE DA FILE_______________
