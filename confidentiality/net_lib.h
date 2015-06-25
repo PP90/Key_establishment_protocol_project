@@ -10,19 +10,17 @@
 
 
 #ifndef NET_LIB
-#define NET_LIB 73 //THE CHUCK NORRIS OF THE NUMBER
+#define NET_LIB 73 
 
 
-#define PORT_NUMBER 8888
-#define DIM_CHAR_MSG 100
-#define MEMSET_YES 1
+#define PORT_NUMBER 8888 //Arbitrary port number
+#define DIM_CHAR_MSG 100 //Max input size message
+#define MEMSET_YES 1 //After encryption\decryption the cipher\plain text must be clear after its send
 #define MEMSET_NO 0
 
-//Encrypt the message , send it's encrypted size and then send the encrypted message. This is done because the server has to know how much space must be alloacated.
-
+//Send a generic message msg, with size size_msg.
 int send_msg(int sock, void* msg, int size_msg, int memset_yes){
 	int res=-1;
-	printf("size_msg:%d\n",size_msg);
 	if(msg==NULL){
 		printf("Error: The message is NULL\n");
 		return res;
