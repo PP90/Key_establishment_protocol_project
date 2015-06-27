@@ -30,8 +30,8 @@ int main(int argc , char *argv[]){
 
 	//The secret actually must be retrived from an ecrypted file
 	unsigned char *secret=calloc(secret_size, sizeof(unsigned char));
-	set_secret_zero(secret,secret_size);
-	
+	secret=retrieve_secret(NULL,secret_size);
+    
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
 	if (socket_desc == -1){
         	printf("Could not create socket");

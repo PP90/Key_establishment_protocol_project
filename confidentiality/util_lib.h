@@ -3,11 +3,14 @@ This library contains a set of useful fuctions for the client and server both.
 
 */
 
+
 #ifndef UTIL_LIB
 #define UTIL_LIB 123
 
 #define DIM_CHAR_MSG 100
 #define ID_SIZE 4
+
+#include <sys/stat.h>
 
 //Generates the M2 message. It's made concatening the messages
 unsigned char *generate_m2(unsigned char* id_requestor, unsigned char* my_id, unsigned char* my_nonce, 		unsigned char* cipher_text, int cipher_size, int *m2_size){
@@ -364,4 +367,41 @@ unsigned char* protocol_client(int sock, unsigned char* my_id,unsigned char* id_
 	return session_key;
 
 }
+
+// These defines helps in simplifying the example writing
+#define SA struct sockaddr
+
+// Uncomment the following macro to perform block by block decryption
+//#define USE_BLOCKS
+
+
+//Function to retrieve the shared secret in a file "sk"
+
+unsigned char* retrieve_secret(unsigned char* pwd, const int secret_size) {
+    
+    unsigned char* secret=calloc(secret_size, sizeof(unsigned char));
+    int ret;
+    FILE* file;
+    struct stat info;
+    
+    ret = stat("sk_file", &info);
+    if (ret != 0)
+        return NULL; // if file dosen't exist return 1
+    
+    file = fopen("sk_file", "r");
+    if(!file){
+        fprintf(stderr, "\nError opening the file sk\n"); // error in the opening file
+        return NULL;
+    }
+    
+    ret = fread(secret, 1, secret_size, file);
+    if(ret != secret_size){
+        fprintf(stderr, "\nError reading the key file\n"); // error in the reading file
+        return NULL;
+    }
+    fclose(file);
+    
+    return secret;
+}
+
 #endif

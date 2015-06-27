@@ -13,8 +13,12 @@ int main(int argc , char *argv[])
 	int key_size;
 	int block_size;
 
-	enc_inizialization(&secret_size, &key_size, &block_size);
 
+	enc_inizialization(&secret_size, &key_size, &block_size);
+    
+    
+    //prn_hex(sk,secret_size); // debug
+    
 	unsigned char* my_id=calloc(ID_SIZE,sizeof(unsigned char));
 	unsigned char* id_server=calloc(ID_SIZE,sizeof(unsigned char));
 	unsigned char* session_key=NULL;
@@ -46,7 +50,7 @@ int main(int argc , char *argv[])
 
 //The secret has to be read from the file not hard code way
 	unsigned char *secret=calloc(secret_size, sizeof(unsigned char));
-	set_secret_zero(secret,secret_size);//I assume that this secret is know by the other side, i.e. the server
+    secret=retrieve_secret(NULL,secret_size);
 
 	int sock=create_socket_and_connect();
 	if(sock<0)	return -1;

@@ -26,15 +26,6 @@ EVP_CIPHER_CTX* enc_initialization(unsigned char* key){
 }
 
 
-//Function to decide arbitrary the shared long term seret. My secret is all 0.
-//Actually the key must be in a crypted file and not in the source code.
-void set_secret_zero(unsigned char *secret, int len_secret){
-	int i;
-	for(i=0; i<len_secret; i++){
-		secret[i]='0';		
-		}
-	}
-
 
 //This function generates the session key between A and B. Its length is session_key_size
 unsigned char* generate_session_key(int session_key_size){
