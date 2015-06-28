@@ -131,7 +131,6 @@ while(1){
 		
 
 	unsigned char * ct=enc_msg(to_send,block_size ,session_key,key_size, &ct_size,128);
-	memset(to_send,0,DIGEST_LEN+input_size);//I clean the to send
 	if(send_msg(sock, &ct_size,sizeof(int),MEMSET_NO)<0){
 		printf("Error sending size message\n");
 		return;
