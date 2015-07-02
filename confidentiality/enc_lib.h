@@ -12,7 +12,7 @@
 #ifndef ENC_LIB 
 #define ENC_LIB 1212
 
-#define NONCE_SIZE 4//The nonce size is 4 byte
+#define NONCE_SIZE 4
 
 #define DES_ECB EVP_des_ecb() //Not advisable to use. Deprecated
 #define AES_256_CBC EVP_aes_256_cbc() //Symmetric cipher mode used in the secret
@@ -20,7 +20,7 @@
 
 #define AES_128_BIT_MODE 128
 #define AES_256_BIT_MODE 256
-
+void prn_hex(unsigned char* msg, int msg_size);
 
 //Initialization of context encryption.
 EVP_CIPHER_CTX* enc_initialization(unsigned char* key){
@@ -54,7 +54,7 @@ void enc_inizialization(int *secret_size, int *key_size, int *block_size){
 unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_len, int* cipher_len, int mode){
 	int outlen=0;
 	int outlen_tot=0;
-	size_t msg_len=strlen(msg)+1;//If I add +1 I consider also the termination 
+	size_t msg_len=strlen(msg)+1;//If I add +1 I consider also the termination character
 	unsigned char *cipher_text=calloc(msg_len+block_size, sizeof(unsigned char));
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
 	
@@ -80,29 +80,30 @@ unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_l
 //If the mode is AES_128_BIT_MODE decrypt with AES 128bit
 //If the mode is AES_256_BIT_MODE decrypt with AES 256bit
 unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsigned char* key, int mode){
+	//When the message is decrypted, it is decrypted also the termination characater. Ma porco 
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
+	unsigned char* pt=calloc(cipher_size,sizeof(unsigned char));
 	int outlen=0;
 	int outlen_tot=0;
 	int res=0;
-	unsigned char* plain_text=calloc(cipher_size,sizeof(unsigned char));
-
+	
 	if(mode==AES_128_BIT_MODE) EVP_DecryptInit(ctx,EVP_aes_128_cbc(), key, NULL);
 	else if(mode==AES_256_BIT_MODE) EVP_DecryptInit(ctx,EVP_aes_256_cbc(), key, NULL);
 	else {
 		printf("Error: choose 128 or 256 in decryption mode\n");
 		return NULL;
 	}
-	EVP_DecryptUpdate(ctx, plain_text, &outlen, cipher_text, cipher_size);
+	EVP_DecryptUpdate(ctx, pt, &outlen, cipher_text, cipher_size);
 	outlen_tot+=outlen;	
-	res=EVP_DecryptFinal(ctx,plain_text+outlen_tot, &outlen);
-
+	res=EVP_DecryptFinal(ctx,pt+outlen_tot, &outlen);
 	if(res==0){
 		printf("Error in decrypting\n");
-		return NULL;
+		//return NULL;
 	}
 	outlen_tot+=outlen;
+	printf("After DEC\t");prn_hex(pt,outlen);
 	EVP_CIPHER_CTX_cleanup(ctx);
-	return plain_text;
+	return pt;
 	}
 
 //This function generates the nonce

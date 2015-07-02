@@ -1,6 +1,5 @@
 /*
 This library contains a set of useful fuctions for the client and server both. 
-
 */
 
 
@@ -15,8 +14,8 @@ This library contains a set of useful fuctions for the client and server both.
 
 //Generates the M2 message. It's made concatening the messages
 unsigned char *generate_m2(unsigned char* my_id, unsigned char* id_requestor, unsigned char* my_nonce, 	unsigned char* cipher_text, int cipher_size, int m2_size){
-
 	unsigned char *m2=calloc(m2_size,sizeof(unsigned char));
+
 	memcpy(m2,my_id,ID_SIZE);
 	memcpy(m2+ID_SIZE,id_requestor,ID_SIZE);
 	memcpy(m2+ID_SIZE+ID_SIZE,my_nonce,NONCE_SIZE);	
@@ -91,137 +90,26 @@ int its_for_me(unsigned char* msg, unsigned char* my_id){
 	else return 0;
 }
 
-//The client session.
-//After receiving the first message from the server, he reply to the message and then waits for another message. It's an infinite loop.
-void session_client(int sock, int block_size, unsigned char* session_key, int key_size){
+
 	
-	int ct_size=16;//Minimum dimension of cipher text
-	unsigned char *ct_rec=calloc(ct_size, sizeof(unsigned char));
-	unsigned char *digest=calloc(DIGEST_LEN, sizeof(unsigned char));
-		//To be initialize
-	unsigned char *pt=NULL;
-	unsigned char* input=NULL;
-	unsigned char *to_send=NULL;
-
-	int input_size=0;
-while(1){
-	
-	memset(ct_rec,0,ct_size);
-	if(recv(sock, &ct_size,sizeof(int),0)<0){
-		printf("Error receiving size message\n");
-		return;	
-	}
-	
-	ct_rec=realloc(ct_rec, ct_size);
-	
-		if(recv(sock, ct_rec,ct_size,0)<0){
-		printf("Error receiving message from server\n");
-		return;
-	}
-	
-	printf("CT received\t");prn_hex(ct_rec,ct_size);
-	pt=dec_msg(ct_rec,block_size, ct_size, session_key, AES_128_BIT_MODE);
-	check_hash(pt,strlen(pt));
-		
-	input=read_in_msg();
-	input_size=strlen(input);
-	ct_size=0;
-	digest=sha256_hash(input, input_size);
-	to_send=realloc(to_send,DIGEST_LEN+input_size);
-
-	memcpy(to_send, digest, DIGEST_LEN);
-	memcpy(to_send+DIGEST_LEN, input, input_size);
-
-	unsigned char * ct=enc_msg(to_send,block_size ,session_key,key_size, &ct_size,AES_128_BIT_MODE);
-	memset(to_send,0,DIGEST_LEN+input_size);//I clean the to send
-	if(send_msg(sock, &ct_size,sizeof(int),MEMSET_NO)<0){
-		printf("Error sending size message\n");
-		return;
-	}
-
-	if(send_msg(sock,ct,ct_size,MEMSET_YES)<0){
-	printf("Error sending message\n");
-	return;
-	}
-}
-
-}
-
-//The server session.
-//After sending the first message to the client, he waits the message and then reply with an input message. It's an infinite loop.
-void session_server(int sock, int block_size, unsigned char* session_key, int key_size){
-
-	unsigned char *digest=calloc(DIGEST_LEN, sizeof(unsigned char));
-	unsigned char *to_send=NULL;//To be initializate and sort out
-	unsigned char * ct=NULL;
-	unsigned char * ct_rec=NULL;
-	int input_size=0;
-	int cipher_size=0;
-	unsigned char* input=NULL;
-	
-	while(1){
-	cipher_size=0;
-	input=read_in_msg();
-	input_size=strlen(input);
-	digest=sha256_hash(input, input_size);
-	to_send=realloc(to_send,DIGEST_LEN+input_size);
-
-	strcat((char*)to_send, (const char*)digest);//Change with memcpy
-	strcat((char*)to_send, (const char*)input);
-
-	memset(digest,0,DIGEST_LEN);//I clean the digest
-	printf("TO SEND\t");prn_hex(to_send, DIGEST_LEN+input_size);
-	ct=enc_msg(to_send,block_size ,session_key,key_size, &cipher_size,AES_128_BIT_MODE);
-	memset(to_send,0,DIGEST_LEN+input_size);//I clean the to send
-	//unsigned char * pt=dec_msg(ct,block_size, cipher_size, session_key, AES_128_BIT_MODE);//Consistency proof debug
-	printf("CT:\t");prn_hex(ct,cipher_size);
-
-	if(send_msg(sock, &cipher_size,sizeof(int),MEMSET_NO)<0){
-		printf("Error sending size message\n");
-		return;
-	}
-
-	if(send_msg(sock,ct,cipher_size,MEMSET_YES)<0){
-		printf("Error sending message\n");
-		return;
-	}	
-	ct=NULL;
-	//Now I wait the size message and the message itself
-	if(recv(sock, &cipher_size,sizeof(int),0)<=0){
-		printf("Error receiving size message\n");
-		return;	
-		}
-		ct_rec=realloc(ct_rec, cipher_size);
-
-		if(recv(sock, ct_rec,cipher_size,0)<=0){
-		printf("Error receiving size message\n");
-		return;
-		}
-		prn_hex(ct_rec,cipher_size);
-		unsigned char* pt=dec_msg(ct_rec,block_size, cipher_size, session_key, 128);
-		check_hash(pt,strlen(pt));
-		//memset on ct_rec
-}
-}
-
 
 //Check if the nonce in the message it's the its own.
-int its_fresh(unsigned char* msg, int session_key_size, unsigned char* my_nonce){
-int end_msg=session_key_size+NONCE_SIZE;
+int its_fresh(unsigned char* msg, int key_size, unsigned char* my_nonce){
+	int end_msg=key_size+NONCE_SIZE;
 	int tmp=0;
 	int i=0;
-for(i=session_key_size; i<end_msg; i++){
-		if(msg[i]==my_nonce[i-session_key_size])tmp++;
+	for(i=key_size; i<end_msg; i++){
+		if(msg[i]==my_nonce[i-key_size])tmp++;
 	}
-if(tmp==NONCE_SIZE) return 1;
-else return 0;
-}
+	if(tmp==NONCE_SIZE) return 1;
+	else return 0;
+	}
 
-//This functions get the session key from the decrypted message msg
+	//This functions get the session key from the decrypted message msg
 unsigned char* extract_session_key(unsigned char* msg, int session_key_size){
-int i;
-unsigned char* session_key=calloc(session_key_size, sizeof(unsigned char));
-for(i=0; i<session_key_size; i++){
+	int i;
+	unsigned char* session_key=calloc(session_key_size, sizeof(unsigned char));
+	for(i=0; i<session_key_size; i++){
 		session_key[i]=msg[i];
 	}
 	return session_key;
@@ -231,11 +119,13 @@ for(i=0; i<session_key_size; i++){
 //See the documentation for more details.
 unsigned char* protocol_server(int client_sock, unsigned char* my_id, unsigned char* secret, int secret_size, int block_size, int key_size){
 
-	//MEssages protocol size
+	//Messages protocol size
 	int m1_size=ID_SIZE+ID_SIZE+NONCE_SIZE;
 	int m2_size=ID_SIZE+ID_SIZE+NONCE_SIZE+secret_size;
 	int m3_size=key_size;
 	int res_crypto_memcmp=0;
+	int cipher_size=0;
+
 	//NONCES
 	unsigned char* my_nonce=calloc(NONCE_SIZE, sizeof(unsigned char));
 	unsigned char* nonce_other_side=calloc(NONCE_SIZE, sizeof(unsigned char));
@@ -251,31 +141,34 @@ unsigned char* protocol_server(int client_sock, unsigned char* my_id, unsigned c
 	unsigned char *cipher_text=calloc(secret_size,sizeof(unsigned char));
 	unsigned char *plain_text=calloc(key_size+NONCE_SIZE,sizeof(unsigned char));
 	unsigned char *nonce_confirmation=calloc(NONCE_SIZE, sizeof(unsigned char));
-	int cipher_size=0;
+	
 	
 	//I'm waiting for the client message M1
 	if(recv(client_sock,m1,m1_size,0)<0){
 		printf("Error receiving 1st message\n");
 		return NULL;
 	}
+
 	//I check if is actually for me and...
 	if(its_for_me(m1,my_id)==0){
 		printf("Error: the message it's not for me.\n");
 		return NULL;
-		}
+	}
+
 	//...and if the message is for me, I get the client nonce, generate the session key and generate the M2 protocol message.
 	my_nonce=generate_nonce();
 	id_requestor=get_id_requestor(m1);
 	nonce_other_side=get_nonce_other_side(m1);
 	session_key=generate_session_key(key_size);
 	
-	//Debug prints
+	/*//Debug prints
 	printf("Secret\t"); prn_hex(secret,secret_size);
-	printf("My nonce\t"); prn_hex(my_nonce,NONCE_SIZE);
+	
 	printf("Nonce Client\t");prn_hex(nonce_other_side,NONCE_SIZE);	printf("\n");
 	printf("Session key\t");prn_hex(session_key, key_size);	printf("\n");
 	printf("M1:\t"); prn_hex(m1,m1_size);printf("\n");
-
+*/
+	printf("My nonce\t"); prn_hex(my_nonce,NONCE_SIZE);
 	//I concatenate with memcopy the session key and nonce. Then it will be encrypted. At least the M2 is generate with respective function.
 	memcpy(plain_text, session_key, key_size);
 	memcpy(plain_text+key_size, nonce_other_side, NONCE_SIZE);
@@ -284,10 +177,10 @@ unsigned char* protocol_server(int client_sock, unsigned char* my_id, unsigned c
 	m2=generate_m2(my_id, id_requestor, my_nonce, cipher_text, cipher_size, m2_size);
 
 	//Debug prints
-	printf("M2_PART (PT)\t"); prn_hex(plain_text, key_size+NONCE_SIZE);
+/*	printf("M2_PART (PT)\t"); prn_hex(plain_text, key_size+NONCE_SIZE);
 	printf("M2_PART (CT):\t");prn_hex(cipher_text,cipher_size);printf("\n");
 	printf("M2: (CT)\t");prn_hex(m2,m2_size);	printf("\n");
-
+*/
 	//I'll send M2
 	if(send_msg(client_sock,m2,m2_size,MEMSET_YES)<0){
 	printf("Error during sending M2\n");
@@ -299,8 +192,7 @@ unsigned char* protocol_server(int client_sock, unsigned char* my_id, unsigned c
 		return NULL;
 	}
 	//Debug prints
-	
-	nonce_confirmation=dec_msg(m3, block_size, m3_size, session_key,AES_128_BIT_MODE);
+	nonce_confirmation=dec_msg(m3, block_size, m3_size, session_key,AES_128_BIT_MODE);//Sometimes something not good happens here. 
 	printf("M3 (ENC)\t");prn_hex(m3,m3_size);	
 	printf("M3 (DEC)\t");prn_hex(nonce_confirmation,NONCE_SIZE);
 
@@ -361,7 +253,7 @@ unsigned char* protocol_client(int sock, unsigned char* my_id,unsigned char* id_
 	
 	my_nonce=generate_nonce();
 	m1=generate_first_msg(m1_size, my_id, id_server, my_nonce);	
-	printf("M1\t"); prn_hex(m1,m1_size);
+	//printf("M1\t"); prn_hex(m1,m1_size);
 
 	//After generate the 1st message, I'll send it
 	if(send_msg(sock, m1,m1_size,MEMSET_YES)<0){
@@ -384,27 +276,26 @@ unsigned char* protocol_client(int sock, unsigned char* my_id,unsigned char* id_
 	//I decrypt with the secret the m2 encrypted content
 	cipher_text=get_encrypted_session_key(m2,m2_size);
 	nonce_other_side=get_nonce_other_side(m2); //Check on nonce of other side
-
+/*
 	//Print some info
 	printf("Secret\t");	prn_hex(secret,secret_size); printf("\n");
 	printf("My nonce\t");	prn_hex(my_nonce,NONCE_SIZE);
 	printf("Nonce server\t");prn_hex(nonce_other_side,NONCE_SIZE);printf("\n");
 	printf("\nM2:\t");prn_hex(m2, m2_size);
 	printf("Cipher_text from server\t");prn_hex(cipher_text,secret_size);
-	
+	*/
 	//I decrypt the info and check its freshness
-	plain_text=dec_msg(cipher_text, block_size, secret_size, secret,256);
-
-	if(its_fresh(plain_text,key_size,my_nonce)==0)
-		printf("Error: The nonce it's not fresh. Maybe the message is corrupted\n");
+	plain_text=dec_msg(cipher_text, block_size, secret_size, secret,AES_256_BIT_MODE);
+	
+	if(its_fresh(plain_text,key_size,my_nonce)==0)		printf("Error: The nonce it's not fresh. Maybe the message is corrupted\n");
 	
 	//I get the session key from the plain text
 	session_key=extract_session_key(plain_text, key_size);
 
-	printf("\nSession_key:\t");prn_hex(session_key, key_size);
+	//printf("\nSession_key:\t");prn_hex(session_key, key_size);
 
-	unsigned char* tmp_cipher_text=enc_msg(nonce_other_side,block_size ,session_key,key_size, &cipher_size,128);
-	printf("M3 (ENC)\t"); prn_hex(tmp_cipher_text,cipher_size);
+	unsigned char* tmp_cipher_text=enc_msg(nonce_other_side,block_size ,session_key,key_size, &cipher_size,AES_128_BIT_MODE);//TO DO. tmp_cipher_text must be declared before
+	//printf("M3 (ENC)\t"); prn_hex(tmp_cipher_text,cipher_size);
 	if(send_msg(sock, tmp_cipher_text,cipher_size,MEMSET_NO)<0){//Send an ecrypted message for key confirmation
 		printf("Error sending message M3\n");
 		return NULL;
@@ -432,10 +323,6 @@ unsigned char* protocol_client(int sock, unsigned char* my_id,unsigned char* id_
 // These defines helps in simplifying the example writing
 #define SA struct sockaddr
 
-// Uncomment the following macro to perform block by block decryption
-//#define USE_BLOCKS
-
-
 //Function to retrieve the shared secret in a file "sk"
 
 unsigned char* retrieve_secret(unsigned char* pwd, const int secret_size) {
@@ -461,7 +348,7 @@ unsigned char* retrieve_secret(unsigned char* pwd, const int secret_size) {
         return NULL;
     }
     fclose(file);
-    
+  
     return secret;
 }
 

@@ -2,6 +2,7 @@
 #include"net_lib.h"
 #include"util_lib.h"
 #include"hash_lib.h"
+#include"session.h"
 
 #define DEFAULT_ID_CLIENT "9999"//The default value of client ID
 #define DEFAULT_ID_SERVER "1234"//The default value of server ID

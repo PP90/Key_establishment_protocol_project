@@ -2,6 +2,7 @@
 #include"net_lib.h"
 #include"util_lib.h"
 #include"hash_lib.h"
+#include"session.h"
 
 #ifndef SER_SRC 
 #define SER_SRC 4332
