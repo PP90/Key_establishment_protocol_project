@@ -13,11 +13,7 @@ int main(int argc , char *argv[])
 	int key_size;
 	int block_size;
 
-
 	enc_inizialization(&secret_size, &key_size, &block_size);
-    
-    
-    //prn_hex(sk,secret_size); // debug
     
 	unsigned char* my_id=calloc(ID_SIZE,sizeof(unsigned char));
 	unsigned char* id_server=calloc(ID_SIZE,sizeof(unsigned char));

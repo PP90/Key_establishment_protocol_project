@@ -18,14 +18,14 @@
 #define MEMSET_YES 1 //After encryption\decryption the cipher\plain text must be clear after its send
 #define MEMSET_NO 0
 
-//Send a generic message msg, with size size_msg.
+//Function that sends:
+// The size of a message and the the message itself. It makes this in order to inform the server for reallocate correctly the buffer.
 int send_msg(int sock, void* msg, int size_msg, int memset_yes){
 	int res=-1;
 	if(msg==NULL){
 		printf("Error: The message is NULL\n");
 		return res;
 	}
-
 	if(size_msg==0){
 		printf("Error: The message has size 0\n");
 		return res;
@@ -36,7 +36,7 @@ int send_msg(int sock, void* msg, int size_msg, int memset_yes){
 		return res;
 	}
 
-	if((res=send(sock, msg, size_msg, 0)) >0){
+	if((res=send(sock, msg, size_msg, 0)) >0){//I made the memset only if the send of the message goes ok
 		if(memset_yes==MEMSET_YES)	memset(msg,0,size_msg);
 	}else	printf("Error sending message\n");
 

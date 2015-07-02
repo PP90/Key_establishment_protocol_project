@@ -18,6 +18,10 @@
 #define AES_256_CBC EVP_aes_256_cbc() //Symmetric cipher mode used in the secret
 #define AES_128_CBC EVP_aes_128_cbc() //Symmetric cipher mode used in the session
 
+#define AES_128_BIT_MODE 128
+#define AES_256_BIT_MODE 256
+
+
 //Initialization of context encryption.
 EVP_CIPHER_CTX* enc_initialization(unsigned char* key){
 	EVP_CIPHER_CTX* ctx=calloc(1,sizeof(EVP_CIPHER_CTX));
@@ -45,17 +49,17 @@ void enc_inizialization(int *secret_size, int *key_size, int *block_size){
 
 //Encryption function. 
 //It encrypts input generic message msg, with the key knowing its length key_len and block_size.
-//If the mode is 128 encrypt with AES 128bit
-//If the mode is 128 encrypt with AES 256bit
-unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_len, int* cipher_len, int mode){//Put another parameter in order to specify the encryption type
+//If the mode is AES_128_BIT_MODE encrypt with AES 128bit
+//If the mode is AES_256_BIT_MODE encrypt with AES 256bit
+unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_len, int* cipher_len, int mode){
 	int outlen=0;
 	int outlen_tot=0;
-	size_t msg_len=strlen(msg)+1;
+	size_t msg_len=strlen(msg)+1;//If I add +1 I consider also the termination 
 	unsigned char *cipher_text=calloc(msg_len+block_size, sizeof(unsigned char));
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
 	
-	if(mode==128) EVP_EncryptInit(ctx,AES_128_CBC, key, NULL);
-	else if(mode==256) EVP_EncryptInit(ctx,AES_256_CBC, key, NULL);
+	if(mode==AES_128_BIT_MODE) EVP_EncryptInit(ctx,AES_128_CBC, key, NULL);
+	else if(mode==AES_256_BIT_MODE) EVP_EncryptInit(ctx,AES_256_CBC, key, NULL);
 	else {
 		printf("Error: choose 128 or 256 in encryption mode\n");
 		return NULL;
@@ -73,8 +77,8 @@ unsigned char* enc_msg(void *msg, int block_size ,unsigned char * key, int key_l
 
 //This function decrypts the cipher text with the key
 //It decrypts input generic message msg, with the key knowing its length key_len and block_size.
-//If the mode is 128 decrypt with AES 128bit
-//If the mode is 128 decrypt with AES 256bit
+//If the mode is AES_128_BIT_MODE decrypt with AES 128bit
+//If the mode is AES_256_BIT_MODE decrypt with AES 256bit
 unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsigned char* key, int mode){
 	EVP_CIPHER_CTX* ctx=enc_initialization(key);
 	int outlen=0;
@@ -82,8 +86,8 @@ unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsig
 	int res=0;
 	unsigned char* plain_text=calloc(cipher_size,sizeof(unsigned char));
 
-	if(mode==128) EVP_DecryptInit(ctx,EVP_aes_128_cbc(), key, NULL);
-	else if(mode==256) EVP_DecryptInit(ctx,EVP_aes_256_cbc(), key, NULL);
+	if(mode==AES_128_BIT_MODE) EVP_DecryptInit(ctx,EVP_aes_128_cbc(), key, NULL);
+	else if(mode==AES_256_BIT_MODE) EVP_DecryptInit(ctx,EVP_aes_256_cbc(), key, NULL);
 	else {
 		printf("Error: choose 128 or 256 in decryption mode\n");
 		return NULL;

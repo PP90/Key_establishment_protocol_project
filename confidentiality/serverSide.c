@@ -13,10 +13,11 @@ int main(int argc , char *argv[]){
 
 	unsigned char* my_id=(unsigned char*)DEFAULT_ID_SERVER;
 	unsigned char *session_key=NULL;
-
+	unsigned char *secret=NULL;
 	int secret_size;
 	int key_size;
 	int block_size;
+	//initialization of variables
 	enc_inizialization(&secret_size, &key_size, &block_size);
 	
 
@@ -29,7 +30,9 @@ int main(int argc , char *argv[]){
 	int socket_dest=0;
 
 	//The secret actually must be retrived from an ecrypted file
-	unsigned char *secret=calloc(secret_size, sizeof(unsigned char));
+	secret=calloc(secret_size, sizeof(unsigned char));
+	session_key=calloc(key_size, sizeof(unsigned char));
+
 	secret=retrieve_secret(NULL,secret_size);
     
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
@@ -67,12 +70,10 @@ int main(int argc , char *argv[]){
         	perror("accept failed");
         	return 1;
     }
-    puts("Connection accepted");
-
-session_key=protocol_server(client_sock, my_id,secret, secret_size, block_size,key_size);
-
+   
+	printf("Connection accepted");
+	session_key=protocol_server(client_sock, my_id,secret, secret_size, block_size,key_size);
 	printf("\nStart Session\n");
-
 	session_server(client_sock, block_size, session_key, key_size);
 	return 0;
 
