@@ -32,12 +32,12 @@ void session_client(int sock, int block_size, unsigned char* session_key, int ke
 		//When I receive the ct, I decrypt it, check it and then clean it
 		printf("CT rec\t");prn_hex(ct_rec,ct_size);
 		pt=dec_msg(ct_rec,block_size, ct_size, session_key, AES_128_BIT_MODE);
-		check_hash(pt,strlen(pt));
+		check_hash(pt,(int)strlen((const char*)pt));
 		memset(ct_rec,0,ct_size);
 
 		//Now a message input is read, compute its lenght, compute its digest.
 		input=read_in_msg();
-		input_size=strlen(input);
+		input_size=(int)strlen((const char*)input);
 		digest=sha256_hash(input, input_size);
 		to_send=realloc(to_send,DIGEST_LEN+input_size);
 
@@ -78,7 +78,7 @@ void session_server(int sock, int block_size, unsigned char* session_key, int ke
 	while(1){
 		//I read an input message, get the input size message, compute its digest and then put message and its digest in a string
 		input=read_in_msg();
-		input_size=strlen(input);
+		input_size=(int)strlen((const char*)input);
 		digest=sha256_hash(input, input_size);
 		to_send=realloc(to_send,DIGEST_LEN+input_size);
 		memcpy(to_send, digest, DIGEST_LEN);
@@ -122,8 +122,8 @@ void session_server(int sock, int block_size, unsigned char* session_key, int ke
 		printf("CT rec\t"); prn_hex(ct_rec,cipher_size); printf("\n");
 	
 		pt=dec_msg(ct_rec,block_size, cipher_size, session_key, AES_128_BIT_MODE);
-		check_hash(pt,strlen(pt));
-		memset(pt,0,strlen(pt));
+		check_hash(pt,(int)strlen((const char*)pt));
+		memset(pt,0,(int)strlen((const char*)pt));
 		}
 }
 	#endif

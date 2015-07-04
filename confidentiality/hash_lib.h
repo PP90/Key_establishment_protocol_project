@@ -9,7 +9,7 @@
 
 void prn_hex(unsigned char* cipher_txt, int cipher_size); // prototype print function
 
-unsigned char* sha256_hash(char * source,int source_len) {
+unsigned char* sha256_hash(unsigned char * source,int source_len) {
   
 //context
     

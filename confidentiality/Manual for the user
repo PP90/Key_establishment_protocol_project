@@ -1,0 +1,15 @@
+Hi user!
+Here you are a little guideline in order to execute correctly the project.
+First of all run two instances of the terminal.
+
+In the first one digit the following command './makeAndRunServer.sh'
+In this way the code will be compiled and the server will be started.
+
+In the second one digit './client'. In this way the client will be executed and s(she) will connect to the server. After a fraction of second, the session, between client and server will be ready.
+
+The server starts with the conversation and then the client can answer.
+
+With this version there a ping-pong conversation between the two entities.
+
+
+Enjoy it!
