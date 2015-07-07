@@ -23,22 +23,22 @@
 int send_msg(int sock, void* msg, int size_msg, int memset_yes){
 	int res=-1;
 	if(msg==NULL){
-		printf("Error: The message is NULL\n");
+		fprintf(stderr,"Error: The message is NULL\n");
 		return res;
 	}
 	if(size_msg==0){
-		printf("Error: The message has size 0\n");
+		fprintf(stderr,"Error: The message has size 0\n");
 		return res;
 	}	
 
 	if((memset_yes!=MEMSET_YES) & (memset_yes!=MEMSET_NO)){
-		printf("Error: mem_set_yes must be %d or %d\n",MEMSET_NO, MEMSET_YES);
+		fprintf(stderr,"Error: mem_set_yes must be %d or %d\n",MEMSET_NO, MEMSET_YES);
 		return res;
 	}
 
 	if((res=send(sock, msg, size_msg, 0)) >0){//I made the memset only if the send of the message goes ok
 		if(memset_yes==MEMSET_YES)	memset(msg,0,size_msg);
-	}else	printf("Error sending message\n");
+	}else	fprintf(stderr,"Error sending message\n");
 
 	return res;
 }
@@ -51,7 +51,7 @@ int create_socket_and_connect(){
 	int sock = socket(AF_INET , SOCK_STREAM , 0);
 	int connection=0;
 	if (sock == -1){     
-		printf("Could not create socket");
+		fprintf(stderr,"Could not create socket");
 		return -1;    
 		}
 
@@ -62,11 +62,11 @@ int create_socket_and_connect(){
 	server.sin_port = htons( PORT_NUMBER );
 	connection=connect(sock ,(struct sockaddr*)&server , sizeof(server));
 	if(connection<0){
-		printf("Error connection\n");	
+		fprintf(stderr,"Error connection\n");	
 		return -1;
 		}
 	else{ 
-		printf("Connection done\n");
+		fprintf(stderr,"Connection done\n");
 		return sock;	
 		}
 

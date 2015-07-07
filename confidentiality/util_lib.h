@@ -43,7 +43,7 @@ unsigned char* get_nonce_other_side(unsigned char* msg){
 //Return a read input message
 unsigned char* read_in_msg(){
 	unsigned char* msg=calloc(DIM_CHAR_MSG,sizeof(unsigned char));
-	printf("Enter message:");
+	fprintf(stderr,"Enter message:");
 	fgets((char*)msg,DIM_CHAR_MSG,stdin);
 	return msg;
 }
@@ -52,10 +52,10 @@ unsigned char* read_in_msg(){
 void prn_hex(unsigned char* msg, int msg_size){
 	int i=0;
 	
-	printf("(%d bytes) ",msg_size);
-	for(i=0; i<msg_size; i++)	printf("%02X ",msg[i]);
+	fprintf(stderr,"(%d bytes) ",msg_size);
+	for(i=0; i<msg_size; i++)	fprintf(stderr,"%02X ",msg[i]);
 
-	printf("\n");
+	fprintf(stderr,"\n");
 	}
 
 //This function generate the first message of the protocol with message concatenating
@@ -145,13 +145,13 @@ unsigned char* protocol_server(int client_sock, unsigned char* my_id, unsigned c
 	
 	//I'm waiting for the client message M1
 	if(recv(client_sock,m1,m1_size,0)<0){
-		printf("Error receiving 1st message\n");
+		fprintf(stderr,"Error receiving 1st message\n");
 		return NULL;
 	}
 
 	//I check if is actually for me and...
 	if(its_for_me(m1,my_id)==0){
-		printf("Error: the message it's not for me.\n");
+		fprintf(stderr,"Error: the message it's not for me.\n");
 		return NULL;
 	}
 
@@ -162,13 +162,13 @@ unsigned char* protocol_server(int client_sock, unsigned char* my_id, unsigned c
 	session_key=generate_session_key(key_size);
 	
 	/*//Debug prints
-	printf("Secret\t"); prn_hex(secret,secret_size);
+	fprintf(stderr,"Secret\t"); prn_hex(secret,secret_size);
 	
-	printf("Nonce Client\t");prn_hex(nonce_other_side,NONCE_SIZE);	printf("\n");
-	printf("Session key\t");prn_hex(session_key, key_size);	printf("\n");
-	printf("M1:\t"); prn_hex(m1,m1_size);printf("\n");
+	fprintf(stderr,"Nonce Client\t");prn_hex(nonce_other_side,NONCE_SIZE);	fprintf(stderr,"\n");
+	fprintf(stderr,"Session key\t");prn_hex(session_key, key_size);fprintf(stderr,"\n");
+	fprintf(stderr,"M1:\t"); prn_hex(m1,m1_size);fprintf(stderr,"\n");
 */
-	printf("My nonce\t"); prn_hex(my_nonce,NONCE_SIZE);
+	fprintf(stderr,"My nonce\t"); prn_hex(my_nonce,NONCE_SIZE);
 	//I concatenate with memcopy the session key and nonce. Then it will be encrypted. At least the M2 is generate with respective function.
 	memcpy(plain_text, session_key, key_size);
 	memcpy(plain_text+key_size, nonce_other_side, NONCE_SIZE);
@@ -177,30 +177,31 @@ unsigned char* protocol_server(int client_sock, unsigned char* my_id, unsigned c
 	m2=generate_m2(my_id, id_requestor, my_nonce, cipher_text, cipher_size, m2_size);
 
 	//Debug prints
-/*	printf("M2_PART (PT)\t"); prn_hex(plain_text, key_size+NONCE_SIZE);
-	printf("M2_PART (CT):\t");prn_hex(cipher_text,cipher_size);printf("\n");
-	printf("M2: (CT)\t");prn_hex(m2,m2_size);	printf("\n");
+/*	fprintf(stderr,"M2_PART (PT)\t"); prn_hex(plain_text, key_size+NONCE_SIZE);
+	fprintf(stderr,"M2_PART (CT):\t");prn_hex(cipher_text,cipher_size);fprintf(stderr,"\n");
+	fprintf(stderr,"M2: (CT)\t");prn_hex(m2,m2_size);	fprintf(stderr,"\n");
 */
 	//I'll send M2
 	if(send_msg(client_sock,m2,m2_size,MEMSET_YES)<0){
-	printf("Error during sending M2\n");
+	fprintf(stderr,"Error during sending M2\n");
+	return NULL;
 	}
 
 	//I'm waiting for M3	
 	if(recv(client_sock,m3, m3_size,0)<0){
-		printf("Error receiving M3\n");
+		fprintf(stderr,"Error receiving M3\n");
 		return NULL;
 	}
 	//Debug prints
 	nonce_confirmation=dec_msg(m3, block_size, m3_size, session_key,AES_128_BIT_MODE);//Sometimes something not good happens here. 
-	printf("M3 (ENC)\t");prn_hex(m3,m3_size);	
-	printf("M3 (DEC)\t");prn_hex(nonce_confirmation,NONCE_SIZE);
+	fprintf(stderr,"M3 (ENC)\t");prn_hex(m3,m3_size);	
+	fprintf(stderr,"M3 (DEC)\t");prn_hex(nonce_confirmation,NONCE_SIZE);
 
 	
 	//Secure memcmp. It's used in order to avoid timing attack.
 	res_crypto_memcmp=CRYPTO_memcmp(nonce_confirmation, my_nonce, NONCE_SIZE);
 	if(res_crypto_memcmp!=0){
-		printf("Nonce received it's not fresh\n");
+		fprintf(stderr,"Nonce received it's not fresh\n");
 		return NULL;
 	}
 	
@@ -253,23 +254,23 @@ unsigned char* protocol_client(int sock, unsigned char* my_id,unsigned char* id_
 	
 	my_nonce=generate_nonce();
 	m1=generate_first_msg(m1_size, my_id, id_server, my_nonce);	
-	//printf("M1\t"); prn_hex(m1,m1_size);
+	//fprintf(stderr,"M1\t"); prn_hex(m1,m1_size);
 
 	//After generate the 1st message, I'll send it
 	if(send_msg(sock, m1,m1_size,MEMSET_YES)<0){
-		printf("Error sending message M1\n");
+		fprintf(stderr,"Error sending message M1\n");
 		return NULL;
 		}
 
 	//I wait for m2
 	if(recv(sock, m2,m2_size,0)<0){
-		printf("Error receiving message M2 from the server\n");
+		fprintf(stderr,"Error receiving message M2 from the server\n");
 		return NULL;
 		}	
 
 	//Clients checks m2 content
 	if(its_for_me(m2, my_id)==0){
-		printf("M2 it's not for me\n");
+		fprintf(stderr,"M2 it's not for me\n");
 		return NULL;
 	}
 
@@ -278,11 +279,11 @@ unsigned char* protocol_client(int sock, unsigned char* my_id,unsigned char* id_
 	nonce_other_side=get_nonce_other_side(m2); //Check on nonce of other side
 /*
 	//Print some info
-	printf("Secret\t");	prn_hex(secret,secret_size); printf("\n");
-	printf("My nonce\t");	prn_hex(my_nonce,NONCE_SIZE);
-	printf("Nonce server\t");prn_hex(nonce_other_side,NONCE_SIZE);printf("\n");
-	printf("\nM2:\t");prn_hex(m2, m2_size);
-	printf("Cipher_text from server\t");prn_hex(cipher_text,secret_size);
+	fprintf(stderr,"Secret\t");	prn_hex(secret,secret_size); fprintf(stderr,"\n");
+	fprintf(stderr,"My nonce\t");	prn_hex(my_nonce,NONCE_SIZE);
+	fprintf(stderr,"Nonce server\t");prn_hex(nonce_other_side,NONCE_SIZE);fprintf(stderr,"\n");
+	fprintf(stderr,"\nM2:\t");prn_hex(m2, m2_size);
+	fprintf(stderr,"Cipher_text from server\t");prn_hex(cipher_text,secret_size);
 	*/
 	//I decrypt the info and check its freshness
 	plain_text=dec_msg(cipher_text, block_size, secret_size, secret,AES_256_BIT_MODE);
@@ -292,12 +293,12 @@ unsigned char* protocol_client(int sock, unsigned char* my_id,unsigned char* id_
 	//I get the session key from the plain text
 	session_key=extract_session_key(plain_text, key_size);
 
-	//printf("\nSession_key:\t");prn_hex(session_key, key_size);
+	//fprintf(stderr,"\nSession_key:\t");prn_hex(session_key, key_size);
 
 	unsigned char* tmp_cipher_text=enc_msg(nonce_other_side,block_size ,session_key,key_size, &cipher_size,AES_128_BIT_MODE);//TO DO. tmp_cipher_text must be declared before
-	//printf("M3 (ENC)\t"); prn_hex(tmp_cipher_text,cipher_size);
+	//fprintf(stderr,"M3 (ENC)\t"); prn_hex(tmp_cipher_text,cipher_size);
 	if(send_msg(sock, tmp_cipher_text,cipher_size,MEMSET_NO)<0){//Send an ecrypted message for key confirmation
-		printf("Error sending message M3\n");
+		fprintf(stderr,"Error sending message M3\n");
 		return NULL;
 	}
 	//Free stuff

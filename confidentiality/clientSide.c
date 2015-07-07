@@ -28,7 +28,7 @@ int main(int argc , char *argv[])
 
 	case 2:
 		if((int)strlen((const char*)argv[1])!=ID_SIZE){
-				printf("The id length must be %d\n",ID_SIZE);
+				fprintf(stderr, "The id length must be %d\n",ID_SIZE);
 				return -1;
 				}
 		my_id=(unsigned char*)argv[1];
@@ -37,7 +37,7 @@ int main(int argc , char *argv[])
 
 	case 3://To do: make this control: my_id and id_server must not be equal
 		if(((int)strlen((const char*)argv[1])!=ID_SIZE) & ((int)strlen((const char*)argv[2])!=ID_SIZE)){
-			printf("The id length must be %d\n",ID_SIZE);
+			fprintf(stderr,"The id length must be %d\n",ID_SIZE);
 			return -1;
 			}
 		my_id=(unsigned char*)argv[1];
@@ -53,7 +53,7 @@ int main(int argc , char *argv[])
 	if(sock<0)	return -1;
 	//START PROTOCOL
 	session_key=protocol_client(sock,my_id,id_server,secret, secret_size,block_size,key_size);
-	printf("\nStart Session\n");
+	fprintf(stderr,"\nStart Session\n");
 	session_client(sock, block_size, session_key, key_size);
 	free(session_key);
 	close(sock);

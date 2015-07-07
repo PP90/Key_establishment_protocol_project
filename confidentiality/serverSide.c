@@ -38,7 +38,7 @@ int main(int argc , char *argv[]){
     
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
 	if (socket_desc == -1){
-        	printf("Could not create socket");
+        	fprintf(stderr,"Could not create socket");
     	}
     	puts("Socket created");
      
@@ -72,9 +72,9 @@ int main(int argc , char *argv[]){
         	return 1;
     }
    
-	printf("Connection accepted");
+	fprintf(stderr,"Connection accepted");
 	session_key=protocol_server(client_sock, my_id,secret, secret_size, block_size,key_size);
-	printf("\nStart Session\n");
+	fprintf(stderr,"\nStart Session\n");
 	session_server(client_sock, block_size, session_key, key_size);
 	return 0;
 

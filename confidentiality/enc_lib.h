@@ -90,18 +90,18 @@ unsigned char* dec_msg(void* cipher_text, int block_size, int cipher_size, unsig
 	if(mode==AES_128_BIT_MODE) EVP_DecryptInit(ctx,EVP_aes_128_cbc(), key, NULL);
 	else if(mode==AES_256_BIT_MODE) EVP_DecryptInit(ctx,EVP_aes_256_cbc(), key, NULL);
 	else {
-		printf("Error: choose 128 or 256 in decryption mode\n");
+		fprintf(stderr,"Error: choose 128 or 256 in decryption mode\n");
 		return NULL;
 	}
 	EVP_DecryptUpdate(ctx, pt, &outlen, cipher_text, cipher_size);
 	outlen_tot+=outlen;	
 	res=EVP_DecryptFinal(ctx,pt+outlen_tot, &outlen);
 	if(res==0){
-		printf("Error in decrypting\n");
+		fprintf(stderr,"Error in decrypting\n");
 		//return NULL;
 	}
 	outlen_tot+=outlen;
-	printf("After DEC\t");prn_hex(pt,outlen);
+	fprintf(stderr,"After DEC\t");prn_hex(pt,outlen);
 	EVP_CIPHER_CTX_cleanup(ctx);
 	return pt;
 	}

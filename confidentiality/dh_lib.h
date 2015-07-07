@@ -22,7 +22,7 @@ DH* gen_pk_and_sk(){
 	dh=DH_generate_parameters(KEY_LENGHT, DH_GENERATOR_2,NULL,NULL);//It generates randomly p and g
 	int gen_key=DH_generate_key(dh);//It generates the secret and public keys
 		if(gen_key==0){
-			printf("Error during generating key\n");
+			fprintf(stderr,"Error during generating key\n");
 			return NULL;
 			}
 	return dh;
@@ -30,10 +30,10 @@ DH* gen_pk_and_sk(){
 
 //It prints the info about the values of the private and public key.
 void prn_get_secret(DH* dh){
-	printf("P: %s\n",BN_bn2dec(dh->p));
-	printf("G: %s\n",BN_bn2dec(dh->g));
-	printf("Public key:%s\n",BN_bn2dec(dh->pub_key));
-	printf("Private key:%s\n",BN_bn2dec(dh->priv_key));
+	fprintf(stderr,"P: %s\n",BN_bn2dec(dh->p));
+	fprintf(stderr,"G: %s\n",BN_bn2dec(dh->g));
+	fprintf(stderr,"Public key:%s\n",BN_bn2dec(dh->pub_key));
+	fprintf(stderr,"Private key:%s\n",BN_bn2dec(dh->priv_key));
 }
 
 BIGNUM* get_pub_key(DH *dh){

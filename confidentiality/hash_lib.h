@@ -54,10 +54,10 @@ int check_hash(unsigned char* msg,int msg_size){
    // prn_hex (tmp_digest,DIGEST_LEN); //debug
     
     if(CRYPTO_memcmp(hash_pt,tmp_digest, DIGEST_LEN)!=0){
-        printf("The message is corrupted\n");
+        fprintf(stderr,"The message is corrupted\n");
         return 0;
     }
-    printf("I've received: %s", tmp_pt);
+    fprintf(stderr,"I've received: %s", tmp_pt);
     return 1;
 };
 
